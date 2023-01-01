@@ -5,7 +5,7 @@ Introduction
 ------------
 Thanks for using the MyHome application!
 
-The aim of this application is to:
+The primary aim of this application is to:
 - read the data from the 'P1' port which is part of the installation of a 'slimme meter' in the Netherlands.
 - read the data from solar installations at home.
 - present the data within a webservice
