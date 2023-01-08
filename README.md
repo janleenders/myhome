@@ -17,7 +17,7 @@ This version is the first working increment after the first sprint.
 
 Properties
 ----------
-- Version: 1.1.1 (08-01-2023)
+- Version: 1.1.2 (08-01-2023)
 - Name: MyHome
 - Author: Jan Leenders (janleenders@kpnplanet.nl)
 
@@ -38,8 +38,8 @@ Product backlog items
 
 Installation, general steps
 ---------------------------
-- Create  directory  within which the application will be installed. f.e. : '/home/<user>/myhome' .
-  The <user> can be any user you have defined. The myhome.config file uses user 'pi'. You are free to change this. 
+- Create  directory  within which the application will be installed. f.e. : '/home/user/myhome' .
+  The 'user' can be any user you have defined. The myhome.config file uses user 'pi'. You are free to change this. 
 - Copy the application files (including the application directory structure) into this directory.
 - Edit the parameter values in the config file myhome.config (in the root of the application directory). You are allowed to rename this file. Make sure you use the correct filename when defining the cron jobs.
 - Make sure you install the following software on your rasberry pi:
@@ -49,8 +49,8 @@ Installation, general steps
 
 - Add two lines to the crontab definitions ( sudo crontab -e) :
 
-	@reboot python3 /home/<user>/myhome/py/reader.py /home/<user>/myhome/myhome.config >> /home/<user>/myhome/log/reader.log
-	@reboot python3 /home/<user>/myhome/py/site.py /home/<user>/myhome/myhome.config >> /home/<user>/myhome/log/site.log
+	@reboot python3 /home/user/myhome/py/reader.py /home/user/myhome/myhome.config >> /home/user/myhome/log/reader.log
+	@reboot python3 /home/user/myhome/py/site.py /home/user/myhome/myhome.config >> /home/user/myhome/log/site.log
 
   As you can see the parameterfile is passed to the python code using the first argument during startup of the application services. 
 
