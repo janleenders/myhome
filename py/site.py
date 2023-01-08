@@ -7,9 +7,11 @@
 #
 
 from flask import Flask, render_template
+from flask import request
 
 from package_site import site_dashboard
 from package_site import site_control
+from package_site import site_report
 from package_generic import parameters
 import sys
 
@@ -30,14 +32,25 @@ else:
    quit()
 
 app_name = "MyHome" 
-main_menu = [['Dashboard', '/'], ['Control', '/control/'], ['Day', '/day/'], ['Week', '/week/'], ['Month', '/month/'], ['Year', '/year/'] ]
+main_menu = [['Dashboard', '/'], ['Control', '/control/'], ['Report', '/report/'] ]
 
 app = Flask(__name__)
 # main page show the dashboard
 @app.route("/")
 def site():
+   interval_hrs = request.args.get('i', default=4, type = int)
+   history_hrs = request.args.get('h', default=0, type = int)
+   if interval_hrs > 25: interval_hrs = 25
+   if interval_hrs < 1: interval_hrs = 1
+   if history_hrs < -24 : history_hrs = -24
+   if history_hrs > 0 : history_hrs = 0
+   return site_dashboard.show_dashboard(main_menu, 0, app_name, interval_hrs, history_hrs, db)
 
-   return site_dashboard.show_dashboard(main_menu, 0, app_name, db)
+@app.route("/report/")
+def report():
+   level = request.args.get('l', default='d', type = str)
+   period = request.args.get('p', default=0, type = int)
+   return site_report.show_report(main_menu, 2, app_name, level, period, db)
 
 @app.route("/control/")
 def control():

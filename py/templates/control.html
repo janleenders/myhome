@@ -2,13 +2,13 @@
    <head>
       <title>{{ title }}</title>
       <link rel="stylesheet" href="../static/style.css/">
-      <script type="text/javascript" src="../static/domotica.js"></script>
+      <script type="text/javascript" src="../static/site.js"></script>
    </head>
    <body>
       <h1>{{ app }}-{{ title }}</h1>
       <table><tr>
 	{% for item in main_menu %}
-	<td><button class="main" onclick="document.location='{{item[1]}}'">{{ item[0] }}</button></td>
+	<td><button class="main{% if item[1] == '/control/'%}_highlight{% endif %}" onclick="document.location='{{item[1]}}'">{{ item[0] }}</button></td>
 	{% endfor %}
       </tr></table>    
       <p>Future control functionality</p>

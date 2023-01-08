@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+   <head>
+      <title>{{ title }}</title>
+      <link rel="stylesheet" href="../static/style.css/">
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+      <script type="text/javascript" src="../static/site.js"></script>
+   </head>
+   <body>
+      <h1>{{ app }} - {{ title }}</h1>
+      <table><tr>
+	{% for item in main_menu %}
+	<td>
+	  <button class="main{% if item[1]=='/report/' %}_highlight{% endif %}" onclick="document.location='{{item[1]}}'">{{ item[0] }}</button>
+	</td>
+	{% endfor %}
+      </tr></table>
+           
+      <table><tr>
+	{% for item in levels %}
+	<td>
+	  {% if item[0] == level_name %}
+	    <button class="main_highlight" onclick="document.location='{{item[1]}}'">{{ item[0] }}</button>
+	  {% else %}
+	    <button class="main" onclick="document.location='{{item[1]}}'">{{ item[0] }}</button>
+	  {% endif %}
+	</td>
+	{% endfor %}
+      </tr></table>
+      <table><tr>
+	<td><button class="main_highlight" onclick="document.location='/report?l={{level_parameter}}&p={{periodm}}'"><<</button></td>
+	{% if period < 0 %}
+	<td><button class="main_highlight" onclick="document.location='/report?l={{level_parameter}}&p={{periodp}}'">>></button></td>
+	{% endif %}
+      </tr></table>
+
+
+      <canvas id="watt_day" width="900" height="400"></canvas>
+      <canvas id="m3_1_day" width="900" height="400"></canvas>
+      <script type="text/javascript">
+
+        var ctx_watt_day = document.getElementById("watt_day").getContext("2d");
+        var watt_day = new Chart(ctx_watt_day, {
+    		type: "bar", 
+  		data: {
+			labels: {{ chan0_day_labels | safe }},
+			datasets: [{
+					label: "Periodic Watt usage (Kwh)",
+                        		backgroundColor: "white",
+					data: {{ chan0_day_values | safe}},
+					fill: false,
+					borderColor: "rgb(125,192,192)",
+					lineTension:0.1
+			           },
+                                   {
+					label: "Periodic Watt return (Kwh)",
+                        		backgroundColor: "green",
+					data: {{ chan0_day_return_values | safe}},
+					fill: false,
+					borderColor: "rgb(125,192,192)",
+					lineTension:0.1
+			           },
+				                                      {
+					label: "Periodic Watt production (Kwh)",
+                        		backgroundColor: "red",
+					data: {{ chan9_day_production_values | safe}},
+					fill: false,
+					borderColor: "rgb(125,192,192)",
+					lineTension:0.1
+			           }]
+		},
+		options: {responsive:false,
+                          scales: {
+                              xAxes:  [{
+                                 stacked: false,
+                                 ticks: {}
+                               }],
+                               yAxes: [{
+                                 stacked: false,
+                                 ticks: {}
+                               }],
+                               zAxes: [{
+                                 stacked: false,
+                                 ticks: {}
+                               }]
+			    }
+                         }
+        }); 
+
+        var ctx_m3_1_day = document.getElementById("m3_1_day").getContext("2d");
+        var m3_1_day = new Chart(ctx_m3_1_day, {
+    		type: "bar", 
+  		data: {
+			labels: {{ chan1_day_labels | safe }},
+			datasets: [{
+					label: "Daily gas usage (m3)",
+                        		backgroundColor: "yellow",
+					data: {{ chan1_day_values | safe}},
+					fill: false,
+					borderColor: "rgb(125,192,192)",
+					lineTension:0.1
+			}]
+		},
+		options: {responsive:false}
+        }); 
+      </script>
+   </body>
+</html>

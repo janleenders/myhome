@@ -10,7 +10,7 @@
 #    Data concepts:
 #    - each datastream is a 'channel'.
 #          channel 0: usage (and return) electricity
-#          channel 1-4: Gas, water, other (conneted to the smart meter). In this code channel 1 concerns gas. 
+#          channel 1-4: Gas, water, other (connected to the smart meter). In this code channel 1 concerns gas. 
 #          channel 9: production of electricity (solar system). Is not part of the P1 port data; results from a json request towards the solar system.
 #
 #    Table structure:
@@ -36,6 +36,7 @@ import sys
 import requests
 import json
 from package_generic import parameters
+from package_reader import solar
 from datetime import datetime, timedelta
 
 args = sys.argv[1:] # get the commandline arguments. the first one is the file (location) with the configuration parameters.
@@ -48,9 +49,8 @@ param_dict = {
                 "interval_data_summary": ["3600","int",False],
                 "database": ["db/P1R.db","str",False],
                 "logging": ["log/","str",False],
-                "solar_path": ["http://192.168.2.4/api/v1/production","str",False],
-                "solar_production_actual_name" : ["wattsNow", "str", False],
-                "solar_production_lifetime_name" : ["wattHoursLifetime", "str", False],
+                "solar_path": ["http://192.168.2.4","str",False],
+                "solar_system": ["enphase","str",False],
 		"serial_port_name" : ["/dev/ttyUSB0", "str", False]
              }
 
@@ -64,8 +64,7 @@ if parameters.setParameters(args[0], param_dict):
     db = folder_path + param_dict["database"][0]
     log_path = folder_path + param_dict["logging"][0]
     solar_request_path = param_dict["solar_path"][0] # to request data from the solar system
-    solar_production_actual_name = param_dict["solar_production_actual_name"][0]
-    solar_production_lifetime_name = param_dict["solar_production_lifetime_name"][0]
+    solar_system = param_dict["solar_system"][0] # to request data from the solar system
 else:
     print("Error reading parameters from file. Execution aborted")
     quit()
@@ -144,7 +143,6 @@ details_timestamp_watt = expires(interval_data_details_watt)
 details_timestamp_m3 = expires(interval_data_details_m3)
 
 logging.warning("Start collecting")
-session = requests.Session() # setup a session on behalf of requests to solar system
 
 while True:
     ser.open()
@@ -225,9 +223,18 @@ while True:
                 try:
                     if timestamp >= details_timestamp_watt:
                         # Get the actual solar system data
-                        watt_production_data = session.get(solar_request_path).text
-                        watt_production_actual = json.loads(watt_production_data)[solar_production_actual_name]
-                        watt_production = float(json.loads(watt_production_data)[solar_production_lifetime_name]) / 1000 # should be in kW
+                        solar_datapoint = solar.get_datapoint(solar_system, solar_request_path)
+                        print(solar_request_path)
+                        print(solar_system)
+                        print(solar_datapoint)
+                        watt_production_actual = int(solar_datapoint['actual'])
+                        watt_production_production = float(solar_datapoint['total'])
+                        if watt_production_production == float(0.0): # no solar data available at this moment.
+                            # Get the last value from the database. Solar system is down of sleeping. 
+                            cur= conn.cursor()
+                            cur.execute("select return_high + return_low from p1_channel_detail where channel=9 order by tst desc limit 1")
+                            rows = cur.fetchall()                            
+                            for row in rows: watt_production = float(row[0])
                         if not prev_watt_production:
                             prev_watt_production = watt_production
                         avg_watt = average(watt)

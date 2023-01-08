@@ -24,3 +24,30 @@ button.main {
    color:black;
 }
 
+button.main_highlight {
+   font-size:2em;
+   background-color:yellow;
+   color:black;
+}
+
+table, canvas {
+   margin-left: auto;
+   margin-right: auto;
+}
+
+table.main {
+   font-size: 2.5em;
+   color: white;
+   border: solid;
+
+}
+
+td.main_center {
+   text-align: center;
+}
+
+th.main_center {
+   text-align: center;
+}
+
+

@@ -31,13 +31,17 @@ The design is based on the following requirements:
  
 Product backlog items
 ---------------------
-- Further development of the reports functionality in the webservice. 
+- Exception handling when no solar datastream is available. Also, make it configurable in the config file
+- Try to make it 'running out of the box'
+- Add instructions to get the cron service within linux running
+- Additional development of the reports functionality in the webservice. 
 - Create the first version of the control functionality
 - Add additional control on the quality of the configuration file input, to enhance the stability of the application. 
 
 Installation, general steps
 ---------------------------
-- Create  directory  within which the application will be installed. f.e. : '/home/pi/myhome'
+- Create  directory  within which the application will be installed. f.e. : '/home/<user>/myhome' .
+  The <user> can be any user you have defined. The myhome.config file uses user 'pi'. You are free to change this. 
 - Copy the application files (including the application directory structure) into this directory.
 - Edit the parameter values in the config file myhome.config (in the root of the application directory). You are allowed to rename this file. Make sure you use the correct filename when defining the cron jobs.
 - Make sure you install the following software on your rasberry pi:
@@ -47,18 +51,28 @@ Installation, general steps
 
 - Add two lines to the crontab definitions ( sudo crontab -e) :
 
-	@reboot python3 /home/pi/myhome/p1r/reader.py /home/pi/myhome/myhome.config >> /home/pi/myhome/log/reader.log
-	@reboot python3 /home/pi/myhome/ws/site.py /home/pi/myhome/myhome.config >> /home/pi/myhome/log/site.log
+	@reboot python3 /home/<user>/myhome/py/reader.py /home/<user>/myhome/myhome.config >> /home/<user>/myhome/log/reader.log
+	@reboot python3 /home/<user>/myhome/py/site.py /home/<user>/myhome/myhome.config >> /home/<user>/myhome/log/site.log
 
   As you can see the parameterfile is passed to the python code using the first argument during startup of the application services. 
 
+- See to it that the cron service is configured correctly. This is not always the case! This service can be configured using the following steps for the Raspberry pi:
+
+	Log in to your pi
+	switch to root user using 'sudo bash'
+	start the cron service by running '/etc/init.d/cron start'
+	edit file '/etc/rc.local' and add the following line before 'exit 0':
+		/etc/init.d/cron start
+	reboot your system: shutdown -r now
+	After reboot, check whether your cron job is started: 'ps aux | grep cron'.
+	Also check the log tail of '/var/log/syslog' : cat /var/log/syslog | tail
+ 
 - Restart your raspberry pi (from commandline: shutdown -r now) and wait a couple of minutes
 
 - Check whether the services are running using the command: 
 	ps aux | grep reader
 	ps aux | grep site
 	
-	Make sure that the cron service within Debian running.
 
 - By now you should be able to see data in the database. Go to sqlite3 <database name> and check this:
 	- select * from p1_channel_detail order by tst desc limit 10;

@@ -3,25 +3,37 @@
       <title>{{ title }}</title>
       <link rel="stylesheet" href="../static/style.css/">
       <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
-      <script type="text/javascript" src="../static/domotica.js"></script>
+      <script type="text/javascript" src="../static/site.js"></script>
    </head>
    <body>
       <h1>{{ app }} - {{ title }}</h1>
       <table><tr>
 	{% for item in main_menu %}
-	<td><button class="main" onclick="document.location='{{item[1]}}'">{{ item[0] }}</button></td>
+	<td><button class="main{%if item[1]=='/'%}_highlight{%endif%}" onclick="document.location='{{item[1]}}'">{{ item[0] }}</button></td>
 	{% endfor %}
 	</tr></table>
-
-      <p>Watt using     (W): <span class="c_highlight">{{ consuming_actual }}</span></p>
-      <p>Watt receiving (W): <span class="c_highlight">{{ receiving_actual }}</span></p>
-      <p>Watt returning (W): <span class="c_highlight">{{ returning_actual }}</span></p>
-      <p>Watt producing (W): <span class="c_highlight">{{ producing_actual }}</span></p>
-      <p>Gas volume (m3): <span class="c_highlight">{{ m3_1_consumption}}</span></p>
+	<table class="main">
+	  <tr><th></th><th class="main_center">Nu</th><th></th><th class="main_center">Vandaag</th></tr>
+	  <tr><td>Watt using</td><td class="main_center">{{ consuming_actual }}</td><td>W</td><td class="main_center">{{ consuming_today }}</td><td>kWh</td></tr>
+	  <tr><td>Watt receiving</td><td class="main_center">{{ receiving_actual }}</td><td>W</td><td class="main_center">{{ receiving_today }}</td><td>kWh</td></tr>
+	  <tr><td>Watt returning</td><td class="main_center">{{ returning_actual }}</td><td>W</td><td class="main_center">{{ returning_today }}</td><td>kWh</td></tr>
+	  <tr><td>Watt producing</td><td class="main_center">{{ producing_actual }}</td><td>W</td><td class="main_center">{{ producing_today }}</td><td>kWh</td></tr>
+	  {% for item in m3_consumption %}
+	  <tr><td>P1 channel {{m3_consumption_channel[loop.index-1]}}</td><td class="main_center">{{ item }}</td><td>m3</td></td><td class="main_center">{{ m3_consumption_today[loop.index-1] }}</td><td>m3</td></tr>
+	  {% endfor %}
+	</table>
+	<table>
+	  <tr>
+	    {% if history_hrs > -24 %} <td><button class="main" onclick="document.location='/?h={{ (history_hrs - 1)}}&i={{interval_hrs}}';"><<</button></td>{% endif %}
+	    {% if interval_hrs > 1 %} <td><button class="main" onclick="document.location='/?h={{ (history_hrs)}}&i={{(interval_hrs-1)}}';">+</button></td>{% endif %}
+	    {% if interval_hrs < 24 %} <td><button class="main" onclick="document.location='/?h={{ (history_hrs)}}&i={{(interval_hrs+1)}}';">-</button></td>{% endif %}
+	    {% if history_hrs < 0 %} <td><button class="main" onclick="document.location='/?h={{ (history_hrs+1)}}&i={{(interval_hrs)}}';">>></button></td>{% endif %}
+	  </tr>
+	</table>
+	<br>
 
       <canvas id="watt_actuals" width="900" height="400"></canvas>
-      <canvas id="watt_day" width="900" height="400"></canvas>
-      <canvas id="m3_1_day" width="900" height="400"></canvas>
+      <canvas id="m3_1_consumption" width="900" height="400"></canvas>
       <script type="text/javascript">
         var ctx_watt_actuals = document.getElementById("watt_actuals").getContext("2d");
         var watt_actuals = new Chart(ctx_watt_actuals, {
@@ -29,30 +41,43 @@
   		data: {
 			labels: {{ chan0_labels | safe }},
 			datasets: [{
-					label: "Actual Watt usage (w)",
-					data: {{ chan0_values | safe}},
+					label: "Actual using (w)",
+					data: {{ chan0_usage_values | safe}},
 					fill: false,
-					borderColor: "white",
+					borderColor: "red",
 					lineTension:0.1
 			            },
                                     {
-					label: "Actual Watt return (w)",
+					label: "Actual returning (w)",
 					data: {{ chan0_return_values | safe}},
 					fill: false,
 					borderColor: "green",
 					lineTension:0.1
 			            },
                                     {
-					label: "Actual Watt production (w)",
+					label: "Actual producing (w)",
 					data: {{ chan9_values | safe}},
 					fill: false,
-					borderColor: "red",
+					borderColor: "cyan",
 					lineTension:0.1
-			            }                        ]
+			            },
+                                    {
+					label: "Actual receiving (w)",
+					data: {{ chan0_values | safe}},
+					fill: false,
+					borderColor: "white",
+					lineTension:0.1
+			            }
+				    ]
 		},
 		options: {responsive:false, stacked:false,
                           scales: {
-                              xAxes:  [{
+                              wAxes:  [{
+                                 ticks: {
+                                     beginAtZero: true
+                                 }
+                               }],
+			      xAxes:  [{
                                  ticks: {
                                      beginAtZero: true
                                  }
@@ -71,62 +96,63 @@
                          }
         }); 
 
-        var ctx_watt_day = document.getElementById("watt_day").getContext("2d");
-        var watt_day = new Chart(ctx_watt_day, {
-    		type: "bar", 
+        var ctx_m3_1_consumption = document.getElementById("m3_1_consumption").getContext("2d");
+        var m3_1_consumption = new Chart(ctx_m3_1_consumption, {
+    		type: "line", 
   		data: {
-			labels: {{ chan0_day_labels | safe }},
-			datasets: [{
-					label: "Daily Watt usage (Kwh)",
-                        		backgroundColor: "white",
-					data: {{ chan0_day_values | safe}},
+			labels: {{ chan1_labels | safe }},
+			datasets: [{    label: "Actual channel 1 m3 using (m3)",
+					data: {{ chan1_values | safe}},
 					fill: false,
-					borderColor: "rgb(125,192,192)",
+					borderColor: "orange",
 					lineTension:0.1
-			           },
-                                   {
-					label: "Daily Watt return (Kwh)",
-                        		backgroundColor: "green",
-					data: {{ chan0_day_return_values | safe}},
+			            },
+				    {    label: "Actual channel 2 m3 using (m3)",
+					data: {{ chan2_values | safe}},
 					fill: false,
-					borderColor: "rgb(125,192,192)",
+					borderColor: "cyan",
 					lineTension:0.1
-			           }]
+			            },
+				    {    label: "Actual channel 3 m3 using (m3)",
+					data: {{ chan3_values | safe}},
+					fill: false,
+					borderColor: "green",
+					lineTension:0.1
+			            },
+				    {    label: "Actual channel 4 m3 using (m3)",
+					data: {{ chan4_values | safe}},
+					fill: false,
+					borderColor: "yellow",
+					lineTension:0.1
+			            },
+				  ]
 		},
-		options: {responsive:false,
+		options: {responsive:false,stacked:false,
                           scales: {
-                              xAxes:  [{
-                                 stacked: true,
+                              wAxes:  [{
+                                 ticks: {
+                                     beginAtZero: true
+                                 }
+                               }],
+			      xAxes:  [{
                                  ticks: {
                                      beginAtZero: true
                                  }
                                }],
                                yAxes: [{
-                                 stacked: true,
+                                 ticks: {
+                                     beginAtZero: true
+                                 }
+                               }],
+                               zAxes: [{
                                  ticks: {
                                      beginAtZero: true
                                  }
                                }]
                           }
-                         }
+			}
         }); 
-
-        var ctx_m3_1_day = document.getElementById("m3_1_day").getContext("2d");
-        var m3_1_day = new Chart(ctx_m3_1_day, {
-    		type: "bar", 
-  		data: {
-			labels: {{ chan1_day_labels | safe }},
-			datasets: [{
-					label: "Daily gas usage (m3)",
-                        		backgroundColor: "yellow",
-					data: {{ chan1_day_values | safe}},
-					fill: false,
-					borderColor: "rgb(125,192,192)",
-					lineTension:0.1
-			}]
-		},
-		options: {responsive:false}
-        }); 
+ 
       </script>
    </body>
 </html>
