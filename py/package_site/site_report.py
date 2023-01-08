@@ -35,6 +35,27 @@ def set_scope(level, period):
    return_val['p'] = p
    
    return return_val
+
+# function to get the data from one of the m3 channels. To prevent repetitive code.
+def get_m3_data(channel_nr, cur, query):
+   cur.execute(query)
+   rows = cur.fetchall()
+   chan_labels = [row[0] for row in rows]
+   chan_values_max = [row[1] for row in rows]
+   chan_values_min = [row[2] for row in rows]
+
+   # determine the delta's per chosen period
+   N = len(chan_labels)
+   delta = 0
+   i = 0 # index for consumption array
+   while i < N:
+      if i == 0:
+         delta = chan_values_min[i]
+      else:
+         delta += chan_values_max[i-1]
+      chan_values_max[i] -= delta
+      i += 1
+   return [chan_labels, chan_values_max]
    
 def show_report(main_menu, menu_idx, app_name, level, period, database_path):
    
@@ -80,13 +101,13 @@ def show_report(main_menu, menu_idx, app_name, level, period, database_path):
                    "' group by " + query_group_by + " limit " + str(interval))
    cur.execute(query)
    rows = cur.fetchall()
-   chan0_day_labels = [row[0] for row in rows]
-   chan0_day_values = [row[1] for row in rows]
-   chan0_day_return_values = [row[2] for row in rows]
-   chan9_day_production_values = [row[2] for row in rows]
-   chan0_day_values_min = [row[3] for row in rows]
-   chan0_day_return_values_min = [row[4] for row in rows]
-   chan9_day_production_values_min = [row[4] for row in rows]
+   chan0_labels = [row[0] for row in rows]
+   chan0_values = [row[1] for row in rows]
+   chan0_return_values = [row[2] for row in rows]
+   chan9_production_values = [row[2] for row in rows]
+   chan0_values_min = [row[3] for row in rows]
+   chan0_return_values_min = [row[4] for row in rows]
+   chan9_production_values_min = [row[4] for row in rows]
       
    query = ("select " + query_select + 
             ", max(return_high) + max(return_low) as max_return" + 
@@ -95,96 +116,87 @@ def show_report(main_menu, menu_idx, app_name, level, period, database_path):
             "' group by " + query_group_by + " limit " + str(interval))
    cur.execute(query)
    rows = cur.fetchall()
-   chan9_day_labels = [row[0] for row in rows]
-   chan9_day_return_values = [row[1] for row in rows]
-   chan9_day_return_values_min = [row[1] for row in rows]
+   chan9_labels = [row[0] for row in rows]
+   chan9_return_values = [row[1] for row in rows]
+   chan9_return_values_min = [row[1] for row in rows]
       
-   N = len(chan0_day_labels)
-   NP = len(chan9_day_labels) #length of production array
+   # synchronise solar points with the receiving points, to be able to plot it the right way in a graph
+   N = len(chan0_labels)
+   M = len(chan9_labels) #length of production array
    i = 0 # index for consumption array (channel = 0)
    j = 0 # index for production array (channel = 9)      
-   while i < N and j < NP:
+   while i < N and j < M:
       if j == 0: 
-         chan9_day_production_values_prev = chan9_day_return_values[j]
-         chan9_day_production_values_min_prev = chan9_day_return_values_min[j]
-      if chan9_day_labels[j] == chan0_day_labels[i]:
-         chan9_day_production_values[i] = chan9_day_return_values[j]
-         chan9_day_production_values_prev = chan9_day_return_values[j]
-         chan9_day_production_values_min[i] = chan9_day_return_values_min[j]
-         chan9_day_production_values_min_prev = chan9_day_return_values_min[j]
+         chan9_production_values_prev = chan9_return_values[j]
+         chan9_production_values_min_prev = chan9_return_values_min[j]
+      if chan9_labels[j] == chan0_labels[i]:
+         chan9_production_values[i] = chan9_return_values[j]
+         chan9_production_values_prev = chan9_return_values[j]
+         chan9_production_values_min[i] = chan9_return_values_min[j]
+         chan9_production_values_min_prev = chan9_return_values_min[j]
          i += 1
          j += 1
-      elif chan9_day_labels[j] > chan0_day_labels[i]:
-         chan9_day_production_values[i] = chan9_day_production_values_prev
-         chan9_day_production_values_min[i] = chan9_day_production_values_min_prev
+      elif chan9_labels[j] > chan0_labels[i]:
+         chan9_production_values[i] = chan9_production_values_prev
+         chan9_production_values_min[i] = chan9_production_values_min_prev
          i += 1
 
+   # determine the delta's per chosen period
    delta0 = 0
    delta0_return = 0
    delta9_production = 0
    i = 0 # index for consumption array (channel = 0)
    while i < N:
       if i == 0:
-         delta0 = chan0_day_values_min[i]
-         delta0_return = chan0_day_return_values_min[i]
-         delta9_production = chan9_day_production_values_min[i]
-         # chan0_day_labels[i] = ""
+         delta0 = chan0_values_min[i]
+         delta0_return = chan0_return_values_min[i]
+         delta9_production = chan9_production_values_min[i]
       else:
-         delta0 = delta0 + chan0_day_values[i-1]
-         delta0_return = delta0_return + chan0_day_return_values[i-1]
-         delta9_production = delta9_production + chan9_day_production_values[i-1]
-         chan0_day_return_values[i-1] = - chan0_day_return_values[i-1]
-         chan9_day_production_values[i-1] = - chan9_day_production_values[i-1]
-      chan0_day_values[i] -= delta0
-      chan0_day_return_values[i] -= delta0_return
-      chan9_day_production_values[i] -= delta9_production
+         delta0 = delta0 + chan0_values[i-1]
+         delta0_return = delta0_return + chan0_return_values[i-1]
+         delta9_production = delta9_production + chan9_production_values[i-1]
+         chan0_return_values[i-1] = - chan0_return_values[i-1]
+         chan9_production_values[i-1] = - chan9_production_values[i-1]
+      chan0_values[i] -= delta0
+      chan0_return_values[i] -= delta0_return
+      chan9_production_values[i] -= delta9_production
       i += 1
    if N > 0: 
-      chan0_day_return_values[N-1] = - chan0_day_return_values[N-1]
-      chan9_day_production_values[N-1] = - chan9_day_production_values[N-1]
+      chan0_return_values[N-1] = - chan0_return_values[N-1]
+      chan9_production_values[N-1] = - chan9_production_values[N-1]
 
-   cur= conn.cursor()
-   cur.execute("select printf('%02d', tst_hr) ||':'|| printf('%02d', tst_m) ||':'|| printf('%02d', tst_s) as time , consumption_high_delta + consumption_low_delta as delta from p1_channel_summary where channel=1 order by tst desc limit 48")
-   rows = cur.fetchall()
-   chan1_day_labels = [row[0] for row in rows]
-   chan1_day_values = [row[1] for row in rows]
+   # assemble the data concerning channel 1 until 4
+   query = ("select " + query_select + 
+                   ", max(consumption_high) + max(consumption_low) as max_cons" +
+                   ", min(consumption_high) + min(consumption_low) as min_cons" +
+                   "  from p1_channel_summary where channel=1 and tst_date >= '" + date_start.strftime("%y%m%d") + 
+                   "' group by " + query_group_by + " limit " + str(interval))
 
-   i = 0
-   N = len(chan1_day_labels)
-   while i < N / 2 :
-      c0 = chan1_day_labels[i]
-      c1 = chan1_day_values[i]
-      chan1_day_labels[i] = chan1_day_labels[N-1-i]
-      chan1_day_values[i] = chan1_day_values[N-1-i]
-      chan1_day_labels[N-1-i] = c0
-      chan1_day_values[N-1-i] = c1
-      i += 1
+   chan1_data = get_m3_data(1,cur, query)
 
-   consuming_actual = -1.0
-   m3_1_consumption = -1.0
+   query = ("select " + query_select + 
+                   ", max(consumption_high) + max(consumption_low) as max_cons" +
+                   ", min(consumption_high) + min(consumption_low) as min_cons" +
+                   "  from p1_channel_summary where channel=2 and tst_date >= '" + date_start.strftime("%y%m%d") + 
+                   "' group by " + query_group_by + " limit " + str(interval))
 
-   cur= conn.cursor()
-   cur.execute("select consumption_actual, return_actual from p1_channel_detail where channel=0 order by tst desc limit 1")
-   rows = cur.fetchall()
-   for row in rows: 
-      receiving_actual = int(row[0])
-      returning_actual = int(row[1])
+   chan2_data = get_m3_data(2,cur, query)
 
-   cur.execute("select consumption_high from p1_channel_detail where channel=1 order by tst desc limit 1")
-   rows = cur.fetchall()
-   for row in rows: 
-      m3_1_consumption= row[0]
+   query = ("select " + query_select + 
+                   ", max(consumption_high) + max(consumption_low) as max_cons" +
+                   ", min(consumption_high) + min(consumption_low) as min_cons" +
+                   "  from p1_channel_summary where channel=3 and tst_date >= '" + date_start.strftime("%y%m%d") + 
+                   "' group by " + query_group_by + " limit " + str(interval))
 
-   cur= conn.cursor()
-   cur.execute("select return_actual from p1_channel_detail where channel=9 order by tst desc limit 1")
-   rows = cur.fetchall()
-   for row in rows: 
-      producing_actual = int(row[0])
-   consuming_actual = producing_actual + receiving_actual - returning_actual 
-   cur.execute("select consumption_high from p1_channel_detail where channel=1 order by tst desc limit 1")
-   rows = cur.fetchall()
-   for row in rows: 
-      m3_1_consumption= row[0]
+   chan3_data = get_m3_data(3,cur, query)
+
+   query = ("select " + query_select + 
+                   ", max(consumption_high) + max(consumption_low) as max_cons" +
+                   ", min(consumption_high) + min(consumption_low) as min_cons" +
+                   "  from p1_channel_summary where channel=4 and tst_date >= '" + date_start.strftime("%y%m%d") + 
+                   "' group by " + query_group_by + " limit " + str(interval))
+
+   chan4_data = get_m3_data(4,cur, query)
 
    now = datetime.now()
    timeString = now.strftime("%y-%m-%d %H:%M")
@@ -202,6 +214,10 @@ def show_report(main_menu, menu_idx, app_name, level, period, database_path):
       'main_menu' : main_menu
       }
    return render_template('report.html', **templateData,
-       chan0_day_labels=chan0_day_labels, chan0_day_values=chan0_day_values, chan0_day_return_values=chan0_day_return_values,
-       chan9_day_production_values=chan9_day_production_values,
-       chan1_day_labels=chan1_day_labels, chan1_day_values=chan1_day_values)
+       chan0_labels=chan0_labels, chan0_values=chan0_values, chan0_return_values=chan0_return_values,
+       chan9_production_values=chan9_production_values,
+       chan1_labels=chan1_data[0], chan1_values=chan1_data[1],
+       chan2_labels=chan2_data[0], chan2_values=chan2_data[1],
+       chan3_labels=chan3_data[0], chan3_values=chan3_data[1],
+       chan4_labels=chan4_data[0], chan4_values=chan4_data[1]
+       )

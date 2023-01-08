@@ -13,7 +13,7 @@
 	{% endfor %}
 	</tr></table>
 	<table class="main">
-	  <tr><th></th><th class="main_center">Nu</th><th></th><th class="main_center">Vandaag</th></tr>
+	  <tr><th></th><th class="main_center">Now</th><th></th><th class="main_center">Today</th></tr>
 	  <tr><td>Watt using</td><td class="main_center">{{ consuming_actual }}</td><td>W</td><td class="main_center">{{ consuming_today }}</td><td>kWh</td></tr>
 	  <tr><td>Watt receiving</td><td class="main_center">{{ receiving_actual }}</td><td>W</td><td class="main_center">{{ receiving_today }}</td><td>kWh</td></tr>
 	  <tr><td>Watt returning</td><td class="main_center">{{ returning_actual }}</td><td>W</td><td class="main_center">{{ returning_today }}</td><td>kWh</td></tr>
@@ -30,6 +30,7 @@
 	    {% if history_hrs < 0 %} <td><button class="main" onclick="document.location='/?h={{ (history_hrs+1)}}&i={{(interval_hrs)}}';">>></button></td>{% endif %}
 	  </tr>
 	</table>
+	<table class="main"><tr><td>Solar system:</td><td>{{solar_system}}={{solar_request_path}}</td></tr></table>
 	<br>
 
       <canvas id="watt_actuals" width="900" height="400"></canvas>

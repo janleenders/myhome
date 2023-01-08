@@ -10,7 +10,7 @@ import sqlite3
 import requests
 import json
     
-def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, database_path):
+def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, database_path, solar_system, solar_request_path):
 
    try:
       conn
@@ -216,7 +216,9 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
       'm3_consumption'         : m3_consumption_value,
       'm3_consumption_channel' : m3_consumption_channel,
       'm3_consumption_today'   : m3_consumption_today,
-      'main_menu'       : main_menu
+      'main_menu'       : main_menu,
+      'solar_system' : solar_system,
+      'solar_request_path' : solar_request_path
       }
    return render_template('index.html', **templateData,
        chan0_labels=chan0_labels, chan0_values=chan0_values, chan0_return_values=chan0_return_values, 

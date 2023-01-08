@@ -35,18 +35,21 @@
 
 
       <canvas id="watt_day" width="900" height="400"></canvas>
-      <canvas id="m3_1_day" width="900" height="400"></canvas>
+      {% if chan1_labels|length > 0%}<canvas id="m3_1_day" width="900" height="400"></canvas>{% endif %}
+      {% if chan2_labels|length > 0%}<canvas id="m3_2_day" width="900" height="400"></canvas>{% endif %}
+      {% if chan3_labels|length > 0%}<canvas id="m3_3_day" width="900" height="400"></canvas>{% endif %}
+      {% if chan4_labels|length > 0%}<canvas id="m3_4_day" width="900" height="400"></canvas>{% endif %}
       <script type="text/javascript">
 
         var ctx_watt_day = document.getElementById("watt_day").getContext("2d");
         var watt_day = new Chart(ctx_watt_day, {
     		type: "bar", 
   		data: {
-			labels: {{ chan0_day_labels | safe }},
+			labels: {{ chan0_labels | safe }},
 			datasets: [{
 					label: "Periodic Watt usage (Kwh)",
                         		backgroundColor: "white",
-					data: {{ chan0_day_values | safe}},
+					data: {{ chan0_values | safe}},
 					fill: false,
 					borderColor: "rgb(125,192,192)",
 					lineTension:0.1
@@ -54,7 +57,7 @@
                                    {
 					label: "Periodic Watt return (Kwh)",
                         		backgroundColor: "green",
-					data: {{ chan0_day_return_values | safe}},
+					data: {{ chan0_return_values | safe}},
 					fill: false,
 					borderColor: "rgb(125,192,192)",
 					lineTension:0.1
@@ -62,7 +65,7 @@
 				                                      {
 					label: "Periodic Watt production (Kwh)",
                         		backgroundColor: "red",
-					data: {{ chan9_day_production_values | safe}},
+					data: {{ chan9_production_values | safe}},
 					fill: false,
 					borderColor: "rgb(125,192,192)",
 					lineTension:0.1
@@ -86,15 +89,16 @@
                          }
         }); 
 
+	{% if chan1_labels|length > 0 %}
         var ctx_m3_1_day = document.getElementById("m3_1_day").getContext("2d");
         var m3_1_day = new Chart(ctx_m3_1_day, {
     		type: "bar", 
   		data: {
-			labels: {{ chan1_day_labels | safe }},
+			labels: {{ chan1_labels | safe }},
 			datasets: [{
-					label: "Daily gas usage (m3)",
+					label: "Daily channel 1 usage (m3)",
                         		backgroundColor: "yellow",
-					data: {{ chan1_day_values | safe}},
+					data: {{ chan1_values | safe}},
 					fill: false,
 					borderColor: "rgb(125,192,192)",
 					lineTension:0.1
@@ -102,6 +106,64 @@
 		},
 		options: {responsive:false}
         }); 
+	{% endif %}
+
+	{% if chan2_labels|length > 0 %}
+        var ctx_m3_2_day = document.getElementById("m3_2_day").getContext("2d");
+        var m3_2_day = new Chart(ctx_m3_2_day, {
+    		type: "bar", 
+  		data: {
+			labels: {{ chan2_labels | safe }},
+			datasets: [{
+					label: "Daily channel 2 usage (m3)",
+                        		backgroundColor: "yellow",
+					data: {{ chan2_values | safe}},
+					fill: false,
+					borderColor: "rgb(125,192,192)",
+					lineTension:0.1
+			}]
+		},
+		options: {responsive:false}
+        }); 
+	{% endif %}
+
+	{% if chan3_labels|length > 0 %}
+        var ctx_m3_3_day = document.getElementById("m3_3_day").getContext("2d");
+        var m3_3_day = new Chart(ctx_m3_3_day, {
+    		type: "bar", 
+  		data: {
+			labels: {{ chan3_labels | safe }},
+			datasets: [{
+					label: "Daily channel 3 usage (m3)",
+                        		backgroundColor: "yellow",
+					data: {{ chan3_values | safe}},
+					fill: false,
+					borderColor: "rgb(125,192,192)",
+					lineTension:0.1
+			}]
+		},
+		options: {responsive:false}
+        }); 
+	{% endif %}
+
+	{% if chan4_labels|length > 0 %}
+        var ctx_m3_4_day = document.getElementById("m3_4_day").getContext("2d");
+        var m3_4_day = new Chart(ctx_m3_4_day, {
+    		type: "bar", 
+  		data: {
+			labels: {{ chan4_labels | safe }},
+			datasets: [{
+					label: "Daily channel 4 usage (m3)",
+                        		backgroundColor: "yellow",
+					data: {{ chan4_values | safe}},
+					fill: false,
+					borderColor: "rgb(125,192,192)",
+					lineTension:0.1
+			}]
+		},
+		options: {responsive:false}
+        }); 
+	{% endif %}
       </script>
    </body>
 </html>

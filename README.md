@@ -32,9 +32,7 @@ The design is based on the following requirements:
  
 Product backlog items
 ---------------------
-- Exception handling when no solar datastream is available. Also, make it configurable in the config file
 - Try to make it 'running out of the box'
-- Additional development of the reports functionality in the webservice. 
 - Create the first version of the control functionality
 - Add additional control on the quality of the configuration file input, to enhance the stability of the application. 
 
