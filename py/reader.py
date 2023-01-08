@@ -224,12 +224,9 @@ while True:
                     if timestamp >= details_timestamp_watt:
                         # Get the actual solar system data
                         solar_datapoint = solar.get_datapoint(solar_system, solar_request_path)
-                        print(solar_request_path)
-                        print(solar_system)
-                        print(solar_datapoint)
                         watt_production_actual = int(solar_datapoint['actual'])
-                        watt_production_production = float(solar_datapoint['total'])
-                        if watt_production_production == float(0.0): # no solar data available at this moment.
+                        watt_production= float(solar_datapoint['total'])
+                        if watt_production == float(0.0): # no solar data available at this moment.
                             # Get the last value from the database. Solar system is down of sleeping. 
                             cur= conn.cursor()
                             cur.execute("select return_high + return_low from p1_channel_detail where channel=9 order by tst desc limit 1")

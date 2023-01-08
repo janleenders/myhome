@@ -17,7 +17,7 @@ This version is the first working increment after the first sprint.
 
 Properties
 ----------
-- Version: 1.0 (01-01-2023)
+- Version: 1.1.1 (08-01-2023)
 - Name: MyHome
 - Author: Jan Leenders (janleenders@kpnplanet.nl)
 
@@ -28,12 +28,12 @@ The design is based on the following requirements:
 - Make use of broadly accepted general components where necessary
 - Make use of broadly accepted programming language(s)
 - Relatively easy configurable for specific home situations in the netherlands (and probably also in Belgium)
+- Enphase and Fronius solar systems are supported. Other can be added on request.
  
 Product backlog items
 ---------------------
 - Exception handling when no solar datastream is available. Also, make it configurable in the config file
 - Try to make it 'running out of the box'
-- Add instructions to get the cron service within linux running
 - Additional development of the reports functionality in the webservice. 
 - Create the first version of the control functionality
 - Add additional control on the quality of the configuration file input, to enhance the stability of the application. 

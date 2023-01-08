@@ -22,8 +22,8 @@ def get_datapoint(solar_system, solar_request_path ):
       if solar_system == 'fronius':
          watt_production_data = session.get(solar_request_path  + 
                     '/solar_api/v1/GetInverterRealtimeData.cgi?Scope=System&DataCollection=CommonInverterData').text
-         return_value['actual'] = json.loads(watt_production_data)["Body"]["Data"]["PAC"]
-         return_value['total']  = float(json.loads(watt_production_data)["Body"]["Data"]["TOTAL_ENERGY"]) / 1000 # should be in kWh
+         return_value['actual'] = json.loads(watt_production_data)["Body"]["Data"]["PAC"]["Values"]["1"]
+         return_value['total']  = float(json.loads(watt_production_data)["Body"]["Data"]["TOTAL_ENERGY"]["Values"]["1"]) / 1000 # should be in kWh
 
    except Exception:
       pass
