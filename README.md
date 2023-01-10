@@ -17,7 +17,7 @@ This version is the first working increment after the first sprint.
 
 Properties
 ----------
-- Version: 1.1.2 (08-01-2023)
+- Version: 1.1.3 (10-01-2023)
 - Name: MyHome
 - Author: Jan Leenders (janleenders@kpnplanet.nl)
 
@@ -30,6 +30,11 @@ The design is based on the following requirements:
 - Relatively easy configurable for specific home situations in the netherlands (and probably also in Belgium)
 - Enphase and Fronius solar systems are supported. Other can be added on request.
  
+Release notes 1.1.3 (10-01-2023)
+--------------------------------
+- Correct presentation of the graphs, depending on the chosen filter: granularity, scrolling back in time. 
+- Presenting the total usage figures for the chosen report period.
+
 Product backlog items
 ---------------------
 - Try to make it 'running out of the box'
@@ -83,7 +88,9 @@ Last words
 The above should do the trick to get MyHome running within your own home. If not, please contact me on my e-mail address so I can give some support on the issues.
 If you have any suggestions for future versions of this application I would be happy to hear from you!
 
-
-	
-	
+Earlier releasenotes
+--------------------
+v1.2.0 Changed the way solar systems can be supported. Currently fronius and enphase are suppoert. Other will folow in time or on request.
+v1.1.0 some reportig enhancement, fixing some technical debt.
+v1.0.0 Initial increment: basic functionality usable already!
 
