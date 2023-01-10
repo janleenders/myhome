@@ -1,12 +1,12 @@
 <!DOCTYPE html>
    <head>
-      <title>{{ title }}</title>
+      <title>{{ title }} </title>
       <link rel="stylesheet" href="../static/style.css/">
       <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
       <script type="text/javascript" src="../static/site.js"></script>
    </head>
    <body>
-      <h1>{{ app }} - {{ title }}</h1>
+      <h1>{{ app }} - {{ title }} <small>[{{ timeString }}]</small></h1>
       <table><tr>
 	{% for item in main_menu %}
 	<td>
@@ -16,6 +16,7 @@
       </tr></table>
            
       <table><tr>
+	<td><button class="main_highlight" onclick="document.location='/report?l={{level_parameter}}&p={{periodm}}'"><<</button></td>  
 	{% for item in levels %}
 	<td>
 	  {% if item[0] == level_name %}
@@ -25,15 +26,21 @@
 	  {% endif %}
 	</td>
 	{% endfor %}
-      </tr></table>
-      <table><tr>
-	<td><button class="main_highlight" onclick="document.location='/report?l={{level_parameter}}&p={{periodm}}'"><<</button></td>
 	{% if period < 0 %}
 	<td><button class="main_highlight" onclick="document.location='/report?l={{level_parameter}}&p={{periodp}}'">>></button></td>
 	{% endif %}
       </tr></table>
+      <table class="main_basic"><tr>	
+        <td class="main">Between {{starttimestamp}}</td><td class="main"> and </td><td class="main">{{endtimestamp}}</td>
+      </tr></table>
+      <br>
 
-
+      <table class="main">
+	{% for key, value in chan_delta.items() %}
+	{% if value[2]>0 %}<tr><td>{{value[0]}}</td><td>{{value[2]}}</td><td>{{value[1]}}</td></tr>{% endif %}
+	{% endfor %}
+      </table>
+      <br>
       <canvas id="watt_day" width="900" height="400"></canvas>
       {% if chan1_labels|length > 0%}<canvas id="m3_1_day" width="900" height="400"></canvas>{% endif %}
       {% if chan2_labels|length > 0%}<canvas id="m3_2_day" width="900" height="400"></canvas>{% endif %}

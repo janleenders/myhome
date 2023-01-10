@@ -19,13 +19,13 @@ p {
 }
 
 button.main {
-   font-size:2em;
+   font-size:2.5em;
    background-color:white;
    color:black;
 }
 
 button.main_highlight {
-   font-size:2em;
+   font-size:2.5em;
    background-color:yellow;
    color:black;
 }
@@ -39,6 +39,13 @@ table.main {
    font-size: 2.5em;
    color: white;
    border: solid;
+
+}
+
+table.main_basic {
+   font-size: 2.5em;
+   color: white;
+   border: none;
 
 }
 

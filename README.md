@@ -34,6 +34,8 @@ Product backlog items
 ---------------------
 - Try to make it 'running out of the box'
 - Create the first version of the control functionality
+  - change the time intervals for which datapoints are collected.
+  - Let the reader look into a database parameter table every hour to adjust the time interval parameters.
 - Add additional control on the quality of the configuration file input, to enhance the stability of the application. 
 
 Installation, general steps

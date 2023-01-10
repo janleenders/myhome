@@ -202,7 +202,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
    templateData = {
       'title' : main_menu[menu_idx][0],
       'app': app_name,
-      'time': timeString,
+      'timeString': timeString,
       'history_hrs'     : history_hrs, 
       'interval_hrs'    : interval_hrs, 
       'consuming_actual': consuming_actual,
