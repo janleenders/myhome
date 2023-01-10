@@ -34,7 +34,7 @@ Release notes 1.1.3 (10-01-2023)
 --------------------------------
 - Correct presentation of the graphs, depending on the chosen filter: granularity, scrolling back in time. 
 - Presenting the total usage figures for the chosen report period.
-
+- Added some indexes to the database. Schema is described in 'schema.sql'. 
 Product backlog items
 ---------------------
 - Try to make it 'running out of the box'
