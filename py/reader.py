@@ -35,6 +35,7 @@ import logging
 import sys
 import requests
 import json
+from math import floor
 from package_generic import parameters
 from package_reader import solar
 from datetime import datetime, timedelta
@@ -43,12 +44,7 @@ args = sys.argv[1:] # get the commandline arguments. the first one is the file (
 
 # Set your own preferences here, or use the config file.
 param_dict = {
-                "folder_path": ["/home/pi/myhome/", "str", False],
-                "interval_data_details_watt": ["20", "int", False],
-                "interval_data_details_m3": ["300","int",False],
-                "interval_data_summary": ["3600","int",False],
-                "database": ["db/P1R.db","str",False],
-                "logging": ["log/","str",False],
+                "application_path": ["/home/pi/myhome/", "str", False],
                 "solar_path": ["http://192.168.2.4","str",False],
                 "solar_system": ["enphase","str",False],
 		"serial_port_name" : ["/dev/ttyUSB0", "str", False]
@@ -57,20 +53,37 @@ param_dict = {
 if parameters.setParameters(args[0], param_dict):
     parameters.showParameters(param_dict)
     serial_port_name = param_dict["serial_port_name"][0]
-    folder_path = param_dict["folder_path"][0]
-    interval_data_details_watt  = int(param_dict["interval_data_details_watt"][0]) # Time interval between registration of electricity details in seconds.
-    interval_data_details_m3    = int(param_dict["interval_data_details_m3"][0]) # Time interval between registration of m3 (gas or water) details in seconds.
-    interval_data_summary       = int(param_dict["interval_data_summary"][0]) # Time interval between registration of summary data in seconds.
-    db = folder_path + param_dict["database"][0]
-    log_path = folder_path + param_dict["logging"][0]
+    application_path = param_dict["application_path"][0]
+    interval_data_details_watt  = 30
+    interval_data_details_m3    = 300
+    interval_data_summary       = 3600
+    db_path = application_path + 'db/'
+    db_name = 'p1r.db'
+    db = db_path + db_name
+    log_path = application_path + 'log/'
     solar_request_path = param_dict["solar_path"][0] # to request data from the solar system
     solar_system = param_dict["solar_system"][0] # to request data from the solar system
+    if (interval_data_summary % interval_data_details_watt) > 0:
+        print("Error in parameters: 'interval_data_summary' is not a multiple value of 'interval_data_details_watt'. Execution aborted")
+        quit()
+    if (interval_data_summary % interval_data_details_m3) > 0:
+        print("Error in parameters: 'interval_data_summary' is not a multiple value of 'interval_data_details_m3'. Execution aborted")
+        quit()
+    if (int(60*60*24) % interval_data_summary) > 0:
+        print("Error in parameters: 'interval_data_summary' is not a divisor of the number of seconds in one earth day. Execution aborted")
+        quit()
+
 else:
     print("Error reading parameters from file. Execution aborted")
     quit()
 
 timestr = time.strftime("%Y%m%d")
-os.makedirs(log_path, exist_ok=True)
+
+try:
+    os.makedirs(log_path, exist_ok=True)
+except Exception as e:
+    print("Error creating the logfile path. Execution aborted: " + str(e))
+    raise
 
 f = log_path + str(timestr) + ".log"
 
@@ -78,6 +91,15 @@ log_format = "%(asctime)s :: %(levelname)s :: %(name)s :: %(filename)s :: %(mess
 # logging.basicConfig(level='WARNING', format=log_format, datefmt='%d-%b-%y %H:%M:%S')
 logging.basicConfig(
     filename=f, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.WARNING)
+
+try:
+    os.makedirs(application_path + db_path, exist_ok=True)
+    conn = sqlite3.connect(db)
+    cur= conn.cursor()
+    # Backlog: check if tables exists already, if not, create the tables and indexes.
+except Exception as e:
+    logging.error("Error creating database connection. Execution aborted: " + str(e))
+    raise
 
 # Seriele poort confguratie
 ser = serial.Serial()
@@ -114,22 +136,24 @@ prev_watt_consumption_low = None
 prev_watt_return_high = None
 prev_watt_return_low = None
 prev_watt_production = None # used for the solar system production
-m3_1_consumption = None
-m3_2_consumption = None
-m3_3_consumption = None
-m3_4_consumption = None
-prev_m3_1_consumption = None
-prev_m3_2_consumption = None
-prev_m3_3_consumption = None
-prev_m3_4_consumption = None
-m3_1_timestamp = None          # Timestamp of the last data concerning channel 1
-m3_2_timestamp = None          # Timestamp of the last data concerning channel 2
-m3_3_timestamp = None          # Timestamp of the last data concerning channel 1
-m3_4_timestamp = None          # Timestamp of the last data concerning channel 2
 
+# m3 data in an array. Per channel: 
+#    [consumption,      --the total consumption value at the current measurepoint
+#     prev_consumption, --the total consumption value at the previous measurepoint. Needed to calculate the delta.
+#     timestamp		--next timestamp to log data in database
+#    ]
+
+m3_data = {"1": [None, None, None],
+           "2": [None, None, None],
+           "3": [None, None, None],
+           "4": [None, None, None]}
 
 def expires(secnds):
-    future = datetime.now() + timedelta(seconds=int(secnds))
+    d = datetime.now()
+    dsec = floor(d.timestamp())
+    de_sec =(floor(dsec / secnds)+1) * secnds
+    future = datetime.fromtimestamp(de_sec)
+    # future = datetime.now() + timedelta(seconds=int(secnds))
     return int(future.strftime("%s"))
 
 def average(lst):
@@ -138,11 +162,11 @@ def average(lst):
     else:
         return 0
 
-summary_timestamp = expires(interval_data_summary)
 details_timestamp_watt = expires(interval_data_details_watt)
 details_timestamp_m3 = expires(interval_data_details_m3)
+summary_timestamp = expires(interval_data_summary)
 
-logging.warning("Start collecting")
+logging.warning("Start collecting P1 data")
 
 while True:
     ser.open()
@@ -191,35 +215,21 @@ while True:
                 watt_return_low = ser_data[10:-5]
                 if prev_watt_return_low is None: prev_watt_return_low = watt_return_low
 
-            if re.match(r'(?=0-1:24.2.1)', ser_data):  # 0-1:24.2.1 = Last 5 minute value in m3, including decimals 
-                m3_1_timestamp = ser_data[11:23]  # Take out the timestamp part (YYMMDDHHMMSS)
-                m3_1_consumption = ser_data[26:-4]  
-                if prev_m3_1_consumption is None : prev_m3_1_consumption = m3_1_consumption 
-
-            if re.match(r'(?=0-2:24.2.1)', ser_data):  # 0-2:24.2.1 = Last 5 minute value in m3, including decimals 
-                m3_2_timestamp = ser_data[11:23]  # Take out the timestamp part (YYMMDDHHMMSS)
-                m3_2_consumption = ser_data[26:-4] 
-                if prev_m3_2_consumption is None : prev_m3_2_consumption = m3_2_consumption 
-
-            if re.match(r'(?=0-3:24.2.1)', ser_data):  # 0-3:24.2.1 = Last 5 minute value in m3, including decimals 
-                m3_3_timestamp = ser_data[11:23]  # Take out the timestamp part (YYMMDDHHMMSS)
-                m3_3_consumption = ser_data[26:-4]
-                if prev_m3_3_consumption is None : prev_m3_3_consumption = m3_2_consumption 
-
-            if re.match(r'(?=0-4:24.2.1)', ser_data):  # 0-4:24.2.1 = Last 5 minute value in m3, including decimals 
-                m3_4_timestamp = ser_data[11:23]  # Take out the timestamp part (YYMMDDHHMMSS)
-                m3_4_consumption = ser_data[26:-4]
-                if prev_m3_4_consumption is None : prev_m3_4_consumption = m3_2_consumption 
+            # read the data concerning channel 1 until 4 (m3 data)
+            i = 1
+            while i <=4 :
+                if re.match(r'(?=0-' + str(i) + ':24.2.1)', ser_data):  # 0-i:24.2.1 = Last 5 minute value in m3, including decimals for channel i
+                    # m3_1_timestamp = ser_data[11:23]  # Take out the timestamp part (YYMMDDHHMMSS)
+                    # m3_1_consumption = ser_data[26:-4]  
+                    # if prev_m3_1_consumption is None : prev_m3_1_consumption = m3_1_consumption 
+                    m3_data[str(i)][2] = ser_data[11:23]  # Take out the timestamp part (YYMMDDHHMMSS)
+                    m3_data[str(i)][0] = ser_data[26:-4]  
+                    if m3_data[str(i)][1] is None : m3_data[str(i)][1] = m3_data[str(i)][0] 
+                i += 1
 
             # Check when the exclamation mark is received (end of data)
             if re.match(r'(?=!)', ser_data, 0):
                 checksum_found = True
-
-                try:
-                    conn
-                except Exception:
-                    conn = sqlite3.connect(db)
-
                 try:
                     if timestamp >= details_timestamp_watt:
                         # Get the actual solar system data
@@ -228,7 +238,7 @@ while True:
                         watt_production= float(solar_datapoint['total'])
                         if watt_production == float(0.0): # no solar data available at this moment.
                             # Get the last value from the database. Solar system is down of sleeping. 
-                            cur= conn.cursor()
+
                             cur.execute("select return_high + return_low from p1_channel_detail where channel=9 order by tst desc limit 1")
                             rows = cur.fetchall()                            
                             for row in rows: watt_production = float(row[0])
@@ -256,46 +266,18 @@ while True:
                         watt_return = []
 
                     if timestamp >= details_timestamp_m3:
-                        # Device connected to channel 1
-                        if m3_1_consumption:
-                            conn.execute("""INSERT INTO p1_channel_detail (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
-                                                        consumption_high, consumption_low, return_high, return_low)
-                                        VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
-                                                                      int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
-                                                                      int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
-                                                                      float(m3_1_consumption), 0.0, 0.0, 0.0])
-                            conn.commit()
-
-                        # Device connected to channel 2
-                        if m3_2_consumption:
-                            conn.execute("""INSERT INTO p1_channel_detail (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
-                                                        consumption_high, consumption_low, return_high, return_low)
-                                        VALUES (2,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
-                                                                      int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
-                                                                      int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
-                                                                      float(m3_2_consumption), 0.0, 0.0, 0.0])
-                            conn.commit()
-
-                        # Device connected to channel 3
-                        if m3_3_consumption:
-                            conn.execute("""INSERT INTO p1_channel_detail (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
-                                                        consumption_high, consumption_low, return_high, return_low)
-                                        VALUES (3,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
-                                                                      int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
-                                                                      int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
-                                                                      float(m3_3_consumption), 0.0, 0.0, 0.0])
-                            conn.commit()
-
-                        # Device connected to channel 4
-                        if m3_4_consumption:
-                            conn.execute("""INSERT INTO p1_channel_detail (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
-                                                        consumption_high, consumption_low, return_high, return_low)
-                                        VALUES (4,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
-                                                                      int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
-                                                                      int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
-                                                                      float(m3_4_consumption), 0.0, 0.0, 0.0])
-                            conn.commit()
-
+                        i = 1
+                        while i <= 4:
+                            # Device connected to channel i
+                            if m3_data[str(i)][0]:
+                                conn.execute("""INSERT INTO p1_channel_detail (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
+                                                            consumption_high, consumption_low, return_high, return_low)
+                                            VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
+                                                                          int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
+                                                                          int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
+                                                                          float(m3_data[str(i)][0]), 0.0, 0.0, 0.0])
+                                conn.commit()
+                            i += 1
 
                         details_timestamp_m3 = expires(interval_data_details_m3)
 
@@ -336,50 +318,21 @@ while True:
                                                                   watt_production_delta, 0.0])
                         conn.commit()
                         
-                        if m3_1_consumption:
-                            m3_1_consumption_delta = float(m3_1_consumption) - float(prev_m3_1_consumption);
-                            conn.execute("""INSERT INTO p1_channel_summary (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
-                                                        consumption_high, consumption_low, return_high, return_low, 
-                                                        consumption_high_delta, consumption_low_delta, return_high_delta, return_low_delta)
-                                        VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
-                                                                      int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
-                                                                      int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
-                                                                      float(m3_1_consumption), 0.0, 0.0, 0.0, m3_1_consumption_delta, 0.0, 0.0, 0.0]) 
-                            conn.commit()
-                            prev_m3_1_consumption = m3_1_consumption
-
-                        if m3_2_consumption:
-                            m3_2_consumption_delta = float(m3_2_consumption) - float(prev_m3_2_consumption);
-                            conn.execute("""INSERT INTO p1_channel_summary (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
-                                                        consumption_high, consumption_low, return_high, return_low, 
-                                                        consumption_high_delta, consumption_low_delta, return_high_delta, return_low_delta)
-                                        VALUES (2,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
-                                                                      int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
-                                                                      int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
-                                                                      float(m3_2_consumption), 0.0, 0.0, 0.0, m3_2_consumption_delta, 0.0, 0.0, 0.0]) 
-                            prev_m3_2_consumption = m3_2_consumption
-
-                        if m3_3_consumption:
-                            m3_3_consumption_delta = float(m3_3_consumption) - float(prev_m3_3_consumption);
-                            conn.execute("""INSERT INTO p1_channel_summary (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
-                                                        consumption_high, consumption_low, return_high, return_low, 
-                                                        consumption_high_delta, consumption_low_delta, return_high_delta, return_low_delta)
-                                        VALUES (3,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
-                                                                      int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
-                                                                      int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
-                                                                      float(m3_3_consumption), 0.0, 0.0, 0.0, m3_3_consumption_delta, 0.0, 0.0, 0.0]) 
-                            prev_m3_3_consumption = m3_3_consumption
-
-                        if m3_4_consumption:
-                            m3_4_consumption_delta = float(m3_4_consumption) - float(prev_m3_4_consumption);
-                            conn.execute("""INSERT INTO p1_channel_summary (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
-                                                        consumption_high, consumption_low, return_high, return_low, 
-                                                        consumption_high_delta, consumption_low_delta, return_high_delta, return_low_delta)
-                                        VALUES (4,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
-                                                                      int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
-                                                                      int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
-                                                                      float(m3_4_consumption), 0.0, 0.0, 0.0, m3_4_consumption_delta, 0.0, 0.0, 0.0]) 
-                            prev_m3_4_consumption = m3_4_consumption
+                        i = 1
+                        while i <= 4:
+                            if m3_data[str(i)][0]:
+                                m3_consumption_delta = float(m3_data[str(i)][0]) - float(m3_data[str(i)][1]); # delta = actual - prev
+                                conn.execute("""INSERT INTO p1_channel_summary (channel, tst, tst_date, tst_y, tst_month, tst_day, tst_hr, tst_m, tst_s, 
+                                                            consumption_high, consumption_low, return_high, return_low, 
+                                                            consumption_high_delta, consumption_low_delta, return_high_delta, return_low_delta)
+                                            VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", [P1_timestamp, P1_timestamp[0:6],
+                                                                          int(P1_timestamp[0:2]),int(P1_timestamp[2:4]),int(P1_timestamp[4:6]),
+                                                                          int(P1_timestamp[6:8]),int(P1_timestamp[8:10]),int(P1_timestamp[10:12]),
+                                                                          float(m3_data[str(i)][0]), 0.0, 0.0, 0.0, m3_consumption_delta, 0.0, 0.0, 0.0]) 
+                                conn.commit()
+                                #prev_m3_1_consumption = m3_1_consumption
+                                m3_data[str(i)][1] = m3_data[str(i)][0] #prev := actual 
+                            i += 1
 
                         summary_timestamp = expires(interval_data_summary)
                         prev_watt_consumption_high = watt_consumption_high

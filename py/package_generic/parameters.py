@@ -26,8 +26,9 @@ def setParameters(file_name, 		# in:		location and name of the parameter file
    return_value = True
    try:
       f = open(file_name, "r")
-   except:
+   except Exception as e:
       return_value = False
+      print("Error opening parameter file: " + str(e))
 
    nroflines = 0
    while True and return_value:

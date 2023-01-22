@@ -20,19 +20,21 @@ args = sys.argv[1:] # get access to the parameters. First one is the configurati
 # Set your own preferences here
 
 param_dict = {
-                "folder_path" : ["/home/pi/myhome/", "str", False],
-                "database"    : ["db/P1R.db","str",False],
+                "application_path" : ["/home/pi/myhome/", "str", False],
                 "solar_path"  : ["<unknown>","str",False],
-                "solar_system": ["<unknown>","str",False]
+                "solar_system": ["<unknown>","str",False],
+                "web_port"    : [80, "int", False]
              }
 if parameters.setParameters(args[0], param_dict):
    parameters.showParameters(param_dict)
    try:
-      folder_path = param_dict["folder_path"][0]
-      db = folder_path + param_dict["database"][0]
+      application_path = param_dict["application_path"][0]
+      web_port = param_dict["web_port"][0]
+      db_path = "db/"
+      db = application_path + db_path + 'p1r.db'
    except Exception:
-      print("Essential parameters not set: 'folder_path' and/or 'db'. Abort execution.")
-      raise 
+      print("Essential parameter not set: 'application_path' or 'web_port'. Abort execution.")
+      raise
    try:
       solar_system = param_dict["solar_system"][0]
       solar_path = param_dict["solar_path"][0]
@@ -72,5 +74,5 @@ def control():
    return site_control.show_control(main_menu, 1, app_name)
       
 if __name__ == "__main__":
-   app.run(host='0.0.0.0', port=6701, debug=True)
+   app.run(host='0.0.0.0', port=str(web_port), debug=True)
 

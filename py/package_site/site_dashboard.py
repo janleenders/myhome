@@ -28,7 +28,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
                      " where channel=0 and " + 
                      "       tst_hr >= " + str(cur_hr + history_hrs - interval_hrs) +
                      "   and tst_hr <= " + str(cur_hr + history_hrs) + 
-                     "   and tst_date = substr(replace(date('now'), '-', ''), 3, 6) order by tst asc ")
+                     "   and tst_date = substr(replace(date('now', 'localtime'), '-', ''), 3, 6) order by tst asc ")
    rows                = cur.fetchall()
    chan0_labels        = [row[0] for row in rows]
    chan0_values        = [row[1] for row in rows]
@@ -41,7 +41,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
                      " where channel=9 and "+ 
                      "       tst_hr >= " + str(cur_hr + history_hrs - interval_hrs) +
                      "   and tst_hr <= " + str(cur_hr + history_hrs) + 
-                     "   and tst_date = substr(replace(date('now'), '-', ''), 3, 6) order by tst asc")
+                     "   and tst_date = substr(replace(date('now', 'localtime'), '-', ''), 3, 6) order by tst asc")
    rows = cur.fetchall()
    chan9_labels = [row[0] for row in rows]
    chan9_values = [row[1] for row in rows]
@@ -76,7 +76,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
                      " where channel=1 and " + 
                      "       tst_hr >= " + str(cur_hr + history_hrs - interval_hrs) +
                      "   and tst_hr <= " + str(cur_hr + history_hrs) + 
-                     "   and tst_date = substr(replace(date('now'), '-', ''), 3, 6) order by tst asc")
+                     "   and tst_date = substr(replace(date('now', 'localtime'), '-', ''), 3, 6) order by tst asc")
 
    rows                = cur.fetchall()
    chan1_labels        = [row[0] for row in rows]
@@ -87,7 +87,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
                      " where channel=2 and " + 
                      "       tst_hr >= " + str(cur_hr + history_hrs - interval_hrs) +
                      "   and tst_hr <= " + str(cur_hr + history_hrs) + 
-                     "   and tst_date = substr(replace(date('now'), '-', ''), 3, 6) order by tst asc")
+                     "   and tst_date = substr(replace(date('now', 'localtime'), '-', ''), 3, 6) order by tst asc")
 
    rows                = cur.fetchall()
    chan2_labels        = [row[0] for row in rows]
@@ -98,7 +98,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
                      " where channel=3 and " + 
                      "       tst_hr >= " + str(cur_hr + history_hrs - interval_hrs) +
                      "   and tst_hr <= " + str(cur_hr + history_hrs) + 
-                     "   and tst_date = substr(replace(date('now'), '-', ''), 3, 6) order by tst asc")
+                     "   and tst_date = substr(replace(date('now', 'localtime'), '-', ''), 3, 6) order by tst asc")
 
    rows                = cur.fetchall()
    chan3_labels        = [row[0] for row in rows]
@@ -109,7 +109,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
                      " where channel=4 and " + 
                      "       tst_hr >= " + str(cur_hr + history_hrs - interval_hrs) +
                      "   and tst_hr <= " + str(cur_hr + history_hrs) + 
-                     "   and tst_date = substr(replace(date('now'), '-', ''), 3, 6) order by tst asc")
+                     "   and tst_date = substr(replace(date('now', 'localtime'), '-', ''), 3, 6) order by tst asc")
 
    rows                = cur.fetchall()
    chan4_labels        = [row[0] for row in rows]
@@ -152,7 +152,8 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
    returning_actual = int(0)
    receiving_today = float(0)
    returning_today = float(0)
-   cur.execute("select consumption_actual, return_actual, consumption_high + consumption_low, return_high+ return_low from p1_channel_detail where channel=0 order by tst desc limit 1")
+   cur.execute("select consumption_actual, return_actual, consumption_high + consumption_low, return_high+ return_low " + 
+               "from p1_channel_detail where channel=0 order by tst desc limit 1")
    rows = cur.fetchall()
    for row in rows: 
       receiving_actual = int(row[0])
@@ -161,7 +162,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
       returning_today = float(row[3])
 
    nrofrows = cur.execute("select consumption_high + consumption_low, return_high + return_low from p1_channel_detail where " + 
-               " tst_date < substr(replace(date('now'),'-',''),3,6) " + 
+               " tst_date < substr(replace(date('now', 'localtime'),'-',''),3,6) " + 
                " and channel=0 order by tst desc limit 1")
    rows = cur.fetchall()
    for row in rows: 
@@ -179,7 +180,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
       producing_today  = float(row[1])
 
    cur.execute("select return_high + return_low from p1_channel_detail where " + 
-               " tst_date < substr(replace(date('now'),'-',''),3,6) " + 
+               " tst_date < substr(replace(date('now', 'localtime'),'-',''),3,6) " + 
                " and channel=9 order by tst desc limit 1")
    rows = cur.fetchall()
    for row in rows: 
@@ -190,7 +191,7 @@ def show_dashboard(main_menu, menu_idx, app_name, interval_hrs, history_hrs, dat
    consuming_today = round(producing_today + receiving_today - returning_today,3) # calculate the today net usage
 
    cur.execute("select channel, max(consumption_high), round(max(consumption_high) - min(consumption_high), 3) from p1_channel_detail " +
-               "where channel in (1,2,3,4) and tst_date = substr(replace(date('now'),'-',''),3,6) group by channel order by channel")
+               "where channel in (1,2,3,4) and tst_date = substr(replace(date('now', 'localtime'),'-',''),3,6) group by channel order by channel")
    rows = cur.fetchall()
    m3_consumption_value = [row[1] for row in rows]
    m3_consumption_channel = [row[0] for row in rows]

@@ -30,11 +30,13 @@ The design is based on the following requirements:
 - Relatively easy configurable for specific home situations in the netherlands (and probably also in Belgium)
 - Enphase and Fronius solar systems are supported. Other can be added on request.
  
-Release notes 1.1.3 (10-01-2023)
+Release notes 1.1.4 (running, xx-yy-2023)
 --------------------------------
-- Correct presentation of the graphs, depending on the chosen filter: granularity, scrolling back in time. 
-- Presenting the total usage figures for the chosen report period.
-- Added some indexes to the database. Schema is described in 'schema.sql'. 
+- Restrictions to timing parameters to create 'clean cuts' of data intervals during the day. f.e. the summary data interval should be a divider of 
+  a days seconds. 
+- using the correct local datetime in sqlite queries.
+- Restrict the parameters in the parameterfile to the necessary ones. Fix the ones which should be equal within each installation, like the 'log' en 'db' path.
+
 Product backlog items
 ---------------------
 - Try to make it 'running out of the box'
@@ -90,7 +92,11 @@ If you have any suggestions for future versions of this application I would be h
 
 Earlier releasenotes
 --------------------
-v1.2.0 Changed the way solar systems can be supported. Currently fronius and enphase are suppoert. Other will folow in time or on request.
+v1.1.3 (10-01-2023)
+- Correct presentation of the graphs, depending on the chosen filter: granularity, scrolling back in time. 
+- Presenting the total usage figures for the chosen report period.
+- Added some indexes to the database. Schema is described in 'schema.sql'. 
+v1.1.2 Changed the way solar systems can be supported. Currently fronius and enphase are supported. Other will folow in time or on request.
 v1.1.0 some reportig enhancement, fixing some technical debt.
 v1.0.0 Initial increment: basic functionality usable already!
 
